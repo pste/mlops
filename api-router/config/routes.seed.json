@@ -1,0 +1,25 @@
+{
+  "tier-0": [
+    "che ore sono",
+    "traduci ciao in inglese",
+    "qual e' la capitale della Francia",
+    "dammi un sinonimo di veloce",
+    "quanto fa 12 per 8",
+    "scrivi un saluto formale per una mail"
+  ],
+  "tier-1": [
+    "refactora questa funzione rispettando i vincoli",
+    "spiega questo stacktrace e proponi un fix",
+    "scrivi i test unitari per questo modulo",
+    "ottimizza questa query SQL lenta",
+    "riassumi questo documento tecnico in punti chiave",
+    "trova il bug in questo snippet e correggilo"
+  ],
+  "tier-2": [
+    "progetta un'architettura distribuita per ingestione dati in tempo reale",
+    "analizza questo paper e confrontalo con lo stato dell'arte",
+    "pianifica una migrazione monolite-microservizi end-to-end",
+    "scrivi una dimostrazione formale di questo teorema",
+    "ragiona passo passo su questo problema di ottimizzazione complesso"
+  ]
+}

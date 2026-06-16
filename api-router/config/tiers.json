@@ -1,0 +1,25 @@
+{
+  "tiers": [
+    {
+      "name": "tier-0",
+      "model": "tier-0",
+      "contextWindow": 8192,
+      "modalities": ["text"],
+      "order": 0
+    },
+    {
+      "name": "tier-1",
+      "model": "tier-1",
+      "contextWindow": 32768,
+      "modalities": ["text"],
+      "order": 1
+    },
+    {
+      "name": "tier-2",
+      "model": "tier-2",
+      "contextWindow": 128000,
+      "modalities": ["text", "image"],
+      "order": 2
+    }
+  ]
+}

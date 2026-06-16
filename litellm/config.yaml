@@ -1,0 +1,51 @@
+# Config LiteLLM v1. I model_name sono i "tier" che il router passa come `model`.
+# Ogni tier è un model-group: qui ha un solo backend, ma puoi aggiungere repliche
+# con lo stesso model_name per avere load-balancing.
+
+model_list:
+  # Tier-0 → llama-server locale (OpenAI-compatibile). Il nome dopo openai/ è
+  # ininfluente per llama.cpp, conta api_base.
+  - model_name: tier-0
+    litellm_params:
+      model: openai/tier0
+      api_base: http://llama-tier0:8080/v1
+      api_key: "sk-noop"
+
+  # Tier-1 → vLLM su server GPU in LAN (vedi tier1-vllm/). api_base punta all'IP
+  # del server via env. Se irraggiungibile, scattano i fallback verso tier-2.
+  - model_name: tier-1
+    litellm_params:
+      model: openai/tier-1
+      api_base: os.environ/TIER1_API_BASE
+      api_key: os.environ/TIER1_API_KEY
+
+  # Tier-2 → cloud (overflow). Esempio con OpenAI; puoi usare qualsiasi provider
+  # supportato da LiteLLM (es. anthropic/claude-...).
+  - model_name: tier-2
+    litellm_params:
+      model: gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+litellm_settings:
+  # Fallback "verso l'alto" (più capienti): sicuro rispetto all'asse B.
+  # Scatta su errori generici (timeout, saturazione, errori backend).
+  fallbacks:
+    - tier-0: ["tier-1", "tier-2"]
+    - tier-1: ["tier-2"]
+  # Rete di sicurezza per il tokenizer approssimato del gate (asse B):
+  # se il tier scelto sfora la context-window (errore dedicato), scala in alto.
+  context_window_fallbacks:
+    - tier-0: ["tier-1", "tier-2"]
+    - tier-1: ["tier-2"]
+  drop_params: true
+
+router_settings:
+  # Quanto è aggressivo il failover.
+  num_retries: 1        # ritenta 1 volta sullo stesso tier prima di scalare
+  timeout: 60           # secondi per tentativo: generoso, tier-0 gira su CPU
+                        # (output corti = pochi secondi, ma evitiamo tagli inutili)
+  allowed_fails: 2      # fallimenti consecutivi prima del cooldown del backend
+  cooldown_time: 30     # secondi di pausa per un backend in cooldown
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

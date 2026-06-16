@@ -1,0 +1,16 @@
+# segreti / config locale
+.env
+
+# diario di lavoro personale (non pubblicato)
+STATE.md
+
+# modelli e pesi (grandi): ignora tutto in models/data tranne il segnaposto
+models/data/*
+!models/data/.gitkeep
+
+# dipendenze node (a qualsiasi livello)
+node_modules/
+
+# cruft
+.DS_Store
+*.log

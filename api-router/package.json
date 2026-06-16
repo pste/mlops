@@ -1,0 +1,17 @@
+{
+  "name": "api-router",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Router intelligente davanti a LiteLLM: gate (asse B) + semantic (asse A)",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "build-centroids": "node scripts/build-centroids.js",
+    "smoke": "node test/smoke.js"
+  },
+  "dependencies": {
+    "fastify": "^5.2.0",
+    "js-tiktoken": "^1.0.16"
+  }
+}

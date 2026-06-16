@@ -1,0 +1,90 @@
+# Stack v1 (sviluppo, fuori da kube). Tutto HTTP sincrono su una rete Docker.
+# I modelli GGUF vanno messi in ./models/data e referenziati in .env.
+
+services:
+  # Router intelligente: gate (asse B) + semantic (asse A) → forward a LiteLLM
+  api-router:
+    build: ./api-router
+    ports:
+      - "8000:8000"
+    environment:
+      LITELLM_URL: http://litellm:4000
+      LITELLM_KEY: ${LITELLM_MASTER_KEY}
+      EMBED_URL: http://llama-embed:8080
+      EMBED_MODEL: embed
+    volumes:
+      # centroids.json generato da build-centroids viene letto da qui
+      - ./api-router/data:/app/data
+    depends_on:
+      - litellm
+      - llama-embed
+
+  # Gateway: load-balancing intra-tier, fallback cross-tier, accounting
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    ports:
+      - "4000:4000"
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Default: il servizio vllm-tier1 qui sotto. Override con un IP LAN se il
+      # tier-1 gira su un server GPU esterno (vedi tier1-vllm/).
+      TIER1_API_BASE: ${TIER1_API_BASE:-http://vllm-tier1:8000/v1}
+      TIER1_API_KEY: ${TIER1_API_KEY:-sk-noop}
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+
+  # Embedding per l'asse A: llama-server in modalità embedding (/v1/embeddings)
+  llama-embed:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models/data:/models
+    command: >
+      -m /models/${EMBED_GGUF}
+      --embedding --pooling mean
+      --host 0.0.0.0 --port 8080
+
+  # Tier-0: llama-server generativo con modello leggero
+  llama-tier0:
+    image: ghcr.io/ggml-org/llama.cpp:server
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./models/data:/models
+    command: >
+      -m /models/${TIER0_GGUF}
+      -c 8192
+      --host 0.0.0.0 --port 8080
+
+  # Tier-1 (vLLM/GPU). NON parte col `docker compose up` di default: e' dietro il
+  # profilo "gpu". Lancialo da solo:  docker compose up -d vllm-tier1
+  # Stessa immagine di tier1-vllm/ (build locale); richiede nvidia-container-toolkit.
+  vllm-tier1:
+    build: ./tier1-vllm
+    profiles: ["gpu"]
+    ports:
+      - "8002:8000"          # host 8002 → evita il clash con api-router (8000)
+    environment:
+      MODEL: ${TIER1_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+      SERVED_NAME: tier-1
+      PORT: "8000"
+      MAX_MODEL_LEN: ${TIER1_MAX_MODEL_LEN:-32768}
+      GPU_MEMORY_UTILIZATION: ${TIER1_GPU_UTIL:-0.90}
+      TENSOR_PARALLEL_SIZE: ${TIER1_TP:-1}
+      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-}
+      VLLM_API_KEY: ${TIER1_API_KEY:-}
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  hf-cache:
