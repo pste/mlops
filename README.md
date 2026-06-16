@@ -178,9 +178,3 @@ curl http://localhost:8000/v1/chat/completions \
 ```
 Nei log di `api-router` compare il tier scelto per ogni richiesta. Per il tier-1 su
 GPU: `docker compose up -d vllm-tier1`.
-
----
-
-## Stato
-
-Vedi [`STATE.md`](STATE.md) per lo stato corrente, le scelte fissate e le decisioni aperte.
