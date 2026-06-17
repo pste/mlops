@@ -14,7 +14,7 @@ const fastify = Fastify({ logger: true })
 const tiers = loadTiers()
 const centroids = loadCentroids()
 if (!centroids) {
-  fastify.log.warn("centroids.json assente: asse A disabilitato, lancia build-centroids")
+  fastify.log.warn("centroids.json assente: SEMANTIC disabilitato, lancia build-centroids")
 }
 
 fastify.get("/health", async () => ({ status: "ok" }))
@@ -27,7 +27,7 @@ fastify.post("/v1/chat/completions", async (request, reply) => {
   let stage = "route"
 
   try {
-    // ① decide il tier (assi A/B)
+    // ① decide il tier (GATE + SEMANTIC)
     const chosen = await route(body, { tiers, centroids })
     request.log.info({ tier: chosen.name, model: chosen.model }, "tier scelto")
 

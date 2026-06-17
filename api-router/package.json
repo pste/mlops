@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Router intelligente davanti a LiteLLM: gate (asse B) + semantic (asse A)",
+  "description": "Router intelligente davanti a LiteLLM: GATE (token) + SEMANTIC (centroidi)",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",

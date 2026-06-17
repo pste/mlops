@@ -23,7 +23,7 @@ function inspect(messages) {
   return { text, modalities: [...modalities] }
 }
 
-// ASSE B (deterministico, calcolato per primo): ritorna i tier che reggono
+// GATE (deterministico, calcolato per primo): ritorna i tier che reggono
 // il payload per context-window e che supportano le modalita' richieste.
 // Ritorna anche text e tokens, riusati a valle (DRY).
 export function gate(messages, tiers) {

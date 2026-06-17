@@ -4,9 +4,9 @@ Router intelligente davanti a LiteLLM (v1, fuori da kube).
 Espone `/v1/chat/completions` OpenAI-compatibile, decide il tier e inoltra.
 
 ## Flusso
-1. **Gate (asse B)** — `tokenCount` vs context-window/modalita' → tier fattibili.
-2. **Semantic (asse A)** — embedding dell'istruzione + cosine vs centroidi → tier preferito.
-3. **Decisione** — il piu' economico fattibile con `order >= preferito` (`max(A,B)`).
+1. **GATE** — `tokenCount` vs context-window/modalita' → tier fattibili.
+2. **SEMANTIC** — embedding dell'istruzione + cosine vs centroidi → tier preferito.
+3. **Decisione** — il piu' economico fattibile con `order >= preferito` (`max(GATE, SEMANTIC)`).
 4. **Forward** — a LiteLLM con `model = tier` (stream passthrough).
 
 ## Variabili d'ambiente
@@ -26,12 +26,12 @@ npm install
 EMBED_URL=http://localhost:8080 npm run build-centroids   # offline: seed → data/centroids.json
 npm run dev                                                # server con --watch
 ```
-Senza `centroids.json` il server parte lo stesso: l'asse A si disabilita e
+Senza `centroids.json` il server parte lo stesso: la fase SEMANTIC si disabilita e
 instrada al tier fattibile piu' economico.
 
 ## Config
 - `config/tiers.json` — capacita' dei tier (context-window, modalita', ordine).
-- `config/routes.seed.json` — utterance sintetiche per tier (seed dell'asse A).
+- `config/routes.seed.json` — utterance sintetiche per tier (seed della fase SEMANTIC).
 
 ## Test
 ```

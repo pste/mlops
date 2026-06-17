@@ -1,5 +1,5 @@
 // Client per il container embedding dedicato (llama-server --embedding),
-// endpoint OpenAI-compatibile /v1/embeddings. Usato dall'asse A.
+// endpoint OpenAI-compatibile /v1/embeddings. Usato dalla fase SEMANTIC.
 const EMBED_URL = (process.env.EMBED_URL || "http://llama-embed:8080")
 const EMBED_MODEL = (process.env.EMBED_MODEL || "embed")
 

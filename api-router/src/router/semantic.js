@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const centroidsPath = join(__dirname, "../../data/centroids.json")
 
 // Carica i centroidi precalcolati da build-centroids.js.
-// Se il file non c'e' ancora (primo boot) ritorna null: l'asse A si disabilita.
+// Se il file non c'e' ancora (primo boot) ritorna null: la fase SEMANTIC si disabilita.
 export function loadCentroids() {
   try {
     const raw = readFileSync(centroidsPath, "utf-8")
@@ -29,7 +29,7 @@ function cosine(a, b) {
   return (dot / (Math.sqrt(na) * Math.sqrt(nb)))
 }
 
-// ASSE A: embedda l'istruzione e ritorna il nome del tier col centroide
+// SEMANTIC: embedda l'istruzione e ritorna il nome del tier col centroide
 // piu' vicino (cosine massimo).
 export async function semantic(text, centroids) {
   const queryVec = await embed(text)

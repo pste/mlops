@@ -3,7 +3,7 @@ import { loadCentroids } from "../src/router/semantic.js"
 import { gate } from "../src/router/gate.js"
 import { route } from "../src/router/index.js"
 
-// Smoke test: [A] gate/asse B deterministico (no rete),
+// Smoke test: [A] GATE deterministico (no rete),
 //             [B] route() completo che stampa il tier scelto (richiede embed).
 let failures = 0
 
@@ -21,8 +21,8 @@ function names(tiers) {
 
 const tiers = loadTiers()
 
-// --- [A] GATE / asse B — deterministico, nessuna rete ---
-console.log("\n[A] Gate / asse B (deterministico)")
+// --- [A] GATE — deterministico, nessuna rete ---
+console.log("\n[A] GATE (deterministico)")
 
 // 1. testo corto → tutti i tier fattibili
 {
@@ -51,8 +51,8 @@ console.log("\n[A] Gate / asse B (deterministico)")
   check("immagine → solo tier-2", (names(feasible) === "tier-2"))
 }
 
-// --- [B] route() completo / asse A — richiede llama-embed + centroidi ---
-console.log("\n[B] Route completo / asse A (richiede llama-embed + centroids)")
+// --- [B] route() completo / SEMANTIC — richiede llama-embed + centroidi ---
+console.log("\n[B] Route completo / SEMANTIC (richiede llama-embed + centroids)")
 
 const centroids = loadCentroids()
 if (!centroids) {
