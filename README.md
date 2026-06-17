@@ -16,10 +16,14 @@ Kubernetes; **v2** introduce kube/KubeEdge, coda e shim.
 > manda il banale al modello leggero, tieni il modello forte per ciò che lo richiede.
 
 ```
-            ┌──────────────┐
-client ───▶ │  API/Router  │   decide il tier (assi A/B)
-            └──────┬───────┘
-                   ▼
+            ┌────────────────────────────────────┐
+            │             API/Router             │
+            │  ┌─────────┐         ┌──────────┐  │           ┌────────────────┐
+client ───▶ │  │  GATE   │         │ SEMANTIC │  │ ──query─▶ │   llama-embed  │
+            │  │ tokens  │ ──────▶ │ centroidi│  │ ◀─vettore─│ /v1/embeddings │
+            │  └─────────┘         └──────────┘  │           └────────────────┘
+            └──────┬─────────────────────────────┘
+                   ▼   tier = il max dei due → forward
             ┌──────────────┐
             │   LiteLLM    │   load-balancing, fallback, accounting
             └──┬───────┬───┘
@@ -39,7 +43,7 @@ client ───▶ │  API/Router  │   decide il tier (assi A/B)
 |--------------|-------|
 | **API/Router** | L'hop intelligente. Riceve `/v1/chat/completions`, **decide il tier** e inoltra. Non serve modelli, non bilancia. (Node/Fastify — vedi `api-router/`) |
 | **LiteLLM**    | Gateway a valle. Load-balancing intra-tier, **failover** cross-tier (fallbacks + context-window + retry/cooldown), accounting token/spend. NON fa semantic routing (non è nativo): l'intelligenza sta nel Router. |
-| **llama-embed** | `llama.cpp` in modalità embedding (`/v1/embeddings`). Serve l'**asse A** del Router (cosine vs centroidi). |
+| **llama-embed** | `llama.cpp` in modalità embedding (`/v1/embeddings`). Serve la fase **SEMANTIC** del Router (cosine vs centroidi). |
 | **tier-0**     | `llama.cpp` su CPU, modelli leggeri. Le richieste banali. |
 | **tier-1**     | `vLLM` con GPU. In-compose (profilo `gpu`) o su server GPU in LAN. Le richieste impegnative. |
 | **tier-2**     | Modelli cloud. Overflow / casi che il locale non regge. |
@@ -47,28 +51,29 @@ client ───▶ │  API/Router  │   decide il tier (assi A/B)
 
 ---
 
-## Come decide il Router: due assi
+## Come decide il Router: GATE + SEMANTIC
 
 La decisione di tier **non** dipende solo dalla semantica della richiesta. Si
-combinano due segnali indipendenti, e il tier finale è il `max` dei due.
+combinano due segnali indipendenti — **GATE** e **SEMANTIC** — e il tier finale
+è il `max` dei due.
 
-### Asse B — taglia del payload *(deterministico, gratis, calcolato per primo)*
+### GATE — taglia del payload *(deterministico, gratis, calcolato per primo)*
 Token-count di query + allegati, confrontato con context-window e modalità di
 ogni tier. È un **vincolo duro**: `"fixa questo" + 2000 righe` esce dal tier-0
 perché non ci sta, a prescindere da quanto sia "semanticamente leggero".
 L'allegato **non si embedda**, si misura.
 
-### Asse A — complessità del task *(semantic router, solo sui tier fattibili)*
+### SEMANTIC — complessità del task *(semantic router, solo sui tier fattibili)*
 Embedding dell'**istruzione** + cosine similarity contro i **centroidi** delle
 rotte. Approccio embedding-based, non un classificatore generativo: più veloce,
 deterministico, si aggiusta aggiungendo frasi-esempio invece di toccare un prompt.
 
 ### La decisione
 ```
-1. GATE (asse B)     → tier fattibili        (chi CI sta per taglia/modalità)
-2. SEMANTIC (asse A) → tier preferito         (per complessità)
-3. tier = il più economico fattibile ≥ preferito   ( = max(A, B) )
-4. forward → LiteLLM con model = tier         (stream passthrough)
+1. GATE      → tier fattibili      (chi CI sta per taglia/modalità)
+2. SEMANTIC  → tier preferito      (per complessità)
+3. tier = il più economico fattibile ≥ preferito   ( = max(GATE, SEMANTIC) )
+4. forward → LiteLLM con model = tier              (stream passthrough)
 ```
 
 ---
@@ -82,7 +87,7 @@ OpenAI-compatibili, quindi LiteLLM li fronteggia diretti.
 
 ```
 api-router → litellm → { llama-tier0, vllm-tier1, cloud }
-api-router → llama-embed   (per l'asse A)
+api-router → llama-embed   (per la fase SEMANTIC)
 ```
 Il **tier-1** (vLLM/GPU) è nel compose ma **dietro il profilo `gpu`**: il
 `docker compose up` di default **non** lo avvia. Lo lanci da solo quando hai una GPU:
@@ -111,12 +116,12 @@ imprevisti **a valle** (reattivo). Configurato in `litellm/config.yaml`:
 
 - **`fallbacks`** — su errore/timeout/saturazione scala al tier successivo.
 - **`context_window_fallbacks`** — rete dedicata se il tier scelto sfora la
-  context-window; copre l'approssimazione del tokenizer del gate (asse B).
+  context-window; copre l'approssimazione del tokenizer del GATE.
 - **`router_settings`** — `num_retries`, `timeout` (60s, perché tier-0 gira su CPU),
   `allowed_fails` + `cooldown_time` per mettere in pausa un backend che fallisce.
 
 Le catene di fallback vanno **solo verso l'alto** (`tier-0 → tier-1 → tier-2`): un
-fallback non può mai violare l'asse-B, al massimo finisce su un tier più capiente.
+fallback non può mai violare il GATE, al massimo finisce su un tier più capiente.
 
 ---
 
@@ -125,7 +130,7 @@ fallback non può mai violare l'asse-B, al massimo finisce su un tier più capie
 ```
 mlops/
 ├─ api-router/            # il Router (Node/Fastify) — vedi api-router/README.md
-│  ├─ src/router/         #   gate (asse B), semantic (asse A), decisione
+│  ├─ src/router/         #   GATE (taglia), SEMANTIC (centroidi), decisione
 │  ├─ config/             #   tiers.json, routes.seed.json
 │  └─ scripts/, test/     #   build-centroids, smoke test
 ├─ tier1-vllm/            # immagine vLLM del tier-1 (in-compose o LAN) — suo README
