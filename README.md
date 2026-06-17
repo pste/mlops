@@ -95,7 +95,7 @@ Il **tier-1** (vLLM/GPU) è nel compose ma **dietro il profilo `gpu`**: il
 docker compose up -d vllm-tier1        # build + run, solo il tier-1
 ```
 La stessa immagine può girare su un **server GPU esterno in LAN** (fuori dal
-compose): in quel caso punta `TIER1_API_BASE` all'IP del server. Vedi
+compose): in quel caso punta `TIER1_API_BASE_1` all'IP del server. Vedi
 [`tier1-vllm/`](tier1-vllm/README.md).
 
 ### v2 — kube + edge *(futuro)*

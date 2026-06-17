@@ -2,7 +2,7 @@
 # I modelli GGUF vanno messi in ./models/data e referenziati in .env.
 
 services:
-  # Router intelligente: gate (asse B) + semantic (asse A) → forward a LiteLLM
+  # Router intelligente: GATE (token) + SEMANTIC (centroidi) → forward a LiteLLM
   api-router:
     build: ./api-router
     ports:
@@ -27,15 +27,17 @@ services:
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      # Default: il servizio vllm-tier1 qui sotto. Override con un IP LAN se il
-      # tier-1 gira su un server GPU esterno (vedi tier1-vllm/).
-      TIER1_API_BASE: ${TIER1_API_BASE:-http://vllm-tier1:8000/v1}
+      # Endpoint dei tier per LiteLLM. Default = servizi del compose (single-host);
+      # override con IP LAN nell'.env se un tier gira su un'altra macchina.
+      TIER0_API_BASE_1: ${TIER0_API_BASE_1:-http://llama-tier0:8080/v1}
+      TIER1_API_BASE_1: ${TIER1_API_BASE_1:-http://vllm-tier1:8000/v1}
+      TIER1_API_BASE_2: ${TIER1_API_BASE_2:-}
       TIER1_API_KEY: ${TIER1_API_KEY:-sk-noop}
     volumes:
       - ./litellm/config.yaml:/app/config.yaml
     command: ["--config", "/app/config.yaml", "--port", "4000"]
 
-  # Embedding per l'asse A: llama-server in modalità embedding (/v1/embeddings)
+  # Embedding per la fase SEMANTIC: llama-server in modalità embedding (/v1/embeddings)
   llama-embed:
     image: ghcr.io/ggml-org/llama.cpp:server
     ports:

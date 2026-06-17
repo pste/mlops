@@ -3,21 +3,29 @@
 # con lo stesso model_name per avere load-balancing.
 
 model_list:
-  # Tier-0 → llama-server locale (OpenAI-compatibile). Il nome dopo openai/ è
-  # ininfluente per llama.cpp, conta api_base.
+  # Tier-0 → llama-server (OpenAI-compatibile). Default: servizio compose; override
+  # con un IP LAN (TIER0_API_BASE_1 nell'.env) se gira su un'altra macchina. Il nome
+  # dopo openai/ è ininfluente per llama.cpp, conta api_base.
   - model_name: tier-0
     litellm_params:
       model: openai/tier0
-      api_base: http://llama-tier0:8080/v1
+      api_base: os.environ/TIER0_API_BASE_1
       api_key: "sk-noop"
 
-  # Tier-1 → vLLM su server GPU in LAN (vedi tier1-vllm/). api_base punta all'IP
-  # del server via env. Se irraggiungibile, scattano i fallback verso tier-2.
+  # Tier-1 → vLLM (in-compose o server GPU in LAN, vedi tier1-vllm/). api_base via env.
+  # Più nodi tier-1 = più entry con lo stesso model_name (model-group): LiteLLM bilancia
+  # e mette in cooldown il nodo morto; se tutti irraggiungibili → fallback verso tier-2.
   - model_name: tier-1
     litellm_params:
       model: openai/tier-1
-      api_base: os.environ/TIER1_API_BASE
+      api_base: os.environ/TIER1_API_BASE_1
       api_key: os.environ/TIER1_API_KEY
+  # 2° nodo tier-1 (opzionale): scommenta e imposta TIER1_API_BASE_2 nell'.env.
+  # - model_name: tier-1
+  #   litellm_params:
+  #     model: openai/tier-1
+  #     api_base: os.environ/TIER1_API_BASE_2
+  #     api_key: os.environ/TIER1_API_KEY
 
   # Tier-2 → cloud (overflow). Esempio con OpenAI; puoi usare qualsiasi provider
   # supportato da LiteLLM (es. anthropic/claude-...).

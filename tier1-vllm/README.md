@@ -6,7 +6,7 @@ Immagine di serving del **tier-1** (vLLM, GPU). Due modi d'uso, stessa immagine:
    `docker-compose.yml` builda da questa cartella. È dietro il profilo `gpu`, quindi
    parte solo se lo lanci esplicitamente: `docker compose up -d vllm-tier1`.
 2. **Su server GPU esterno in LAN** (questa cartella, fuori dal compose): build +
-   `run.sh` sul server; LiteLLM lo raggiunge via IP di rete (`TIER1_API_BASE`).
+   `run.sh` sul server; LiteLLM lo raggiunge via IP di rete (`TIER1_API_BASE_1`).
 
 Le istruzioni sotto coprono il caso **2**.
 
@@ -39,8 +39,8 @@ Il `served-model-name` è `tier-1` e DEVE combaciare col nome che LiteLLM invia.
 ## Wiring verso LiteLLM (sull'host del progetto)
 Nel `.env` del progetto (root) imposta l'endpoint del server GPU:
 ```
-TIER1_API_BASE=http://<ip-del-server-gpu>:8000/v1
-TIER1_API_KEY=sk-noop          # o il VLLM_API_KEY se hai messo --api-key
+TIER1_API_BASE_1=http://<ip-del-server-gpu>:8000/v1
+TIER1_API_KEY=sk-noop            # o il VLLM_API_KEY se hai messo --api-key
 ```
 Poi riavvia LiteLLM:
 ```bash
